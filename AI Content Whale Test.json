@@ -1,0 +1,1599 @@
+{
+  "name": "AI Content Whale Test",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "66bc2d7b-9b31-494b-bdb5-c7dc4bdc5a79",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        5744,
+        3664
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1tGmwTGrI0uQW8ggRmvV_9iov8ahdjAVC2UeSuW5Dzu4",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Config",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "0689a8cb-c0d9-465f-8cc7-8f6740de7f9d",
+      "name": "Read Global Mascot Config",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        6160,
+        3632
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ZqMMGEWyQfQjPSu0",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1tGmwTGrI0uQW8ggRmvV_9iov8ahdjAVC2UeSuW5Dzu4",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Content",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "3cf6298f-883f-4bc6-bb74-77ddaa94c57d",
+      "name": "Read Content Rows",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        6384,
+        3632
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ZqMMGEWyQfQjPSu0",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const globalMascot = $items('Read Global Mascot Config')[0]?.json?.values?.[0]?.[0] || '';\nconst contentRows = $input.all();\nconst pendingItems = [];\n\nfor (let i = 0; i < contentRows.length; i++) {\n  const row = contentRows[i].json;\n  const rowNumber = row.row_number;\n  const rawContent = (row['Raw Content'] || '').toString().trim();\n  const rowMascot = (row['Mascot(Opt)'] || '').toString().trim();\n  const status = (row['Status'] || '').toString().trim();\n  \n  if (rawContent && status !== 'Success' && status !== 'Processing') {\n    pendingItems.push({\n      json: {\n        rowNumber: rowNumber,\n        rawContent: rawContent,\n        rowMascot: rowMascot,\n        globalMascot: globalMascot,\n        currentStatus: status\n      }\n    });\n  }\n}\n\nif (pendingItems.length > 0) {\n  return [pendingItems[0]];\n} else {\n  return [{ json: { _noWork: true, message: 'No pending items' } }];\n}"
+      },
+      "id": "234e9461-3dac-4200-9d3f-d1145bb10ed0",
+      "name": "Filter Pending Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6608,
+        3632
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "has-work",
+              "leftValue": "={{ $json._noWork }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "bb065096-3a4d-4fdb-9ccf-171bbe1d340a",
+      "name": "Has Work?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.1,
+      "position": [
+        6832,
+        3632
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1tGmwTGrI0uQW8ggRmvV_9iov8ahdjAVC2UeSuW5Dzu4",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Content",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "Processing",
+            "row_number": "={{ $json.rowNumber }}",
+            "Raw Content": "={{ $json.rawContent }}"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Raw Content",
+              "displayName": "Raw Content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Mascot(Opt)",
+              "displayName": "Mascot(Opt)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Doc URL",
+              "displayName": "Doc URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Error Message",
+              "displayName": "Error Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "3cf798c2-72c9-4b25-8353-fbe01f2e5b4e",
+      "name": "Mark as Processing",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        7056,
+        3632
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ZqMMGEWyQfQjPSu0",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "78da97ea-eda1-45de-a44c-4f809de25aa5",
+              "name": "rawContent",
+              "value": "={{ $json[\"Raw Content\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "5c61d5db-3b74-400c-8f67-883531ebd377",
+              "name": "rowNumber",
+              "value": "={{ $json.row_number }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6ab96b49-77ca-4ad6-bb02-a2fa17098f6a",
+      "name": "Prepare Payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        7280,
+        3632
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.rawContent }}"
+            },
+            {
+              "content": "คุณคือ \"พี่วาฬ\" ผู้เขียนคอนเทนต์ของเพจ \"พลังวาฬบางอย่าง\" ซึ่งเป็นเพจ Unbrand ของ ปตท. ที่ทำหน้าที่อัปเดทเทรนด์ ให้ความรู้ และสร้างความเข้าใจเชิงบวกเกี่ยวกับพลังงาน เทคโนโลยีใหม่ และไลฟสไตล์ทั่วไป\nวิธีการเขียน :\n\nอ่านเนื้อหาและนำมาเขียนสื่อสารในสไตล์ที่กำหนด เนื้อหาความยาวตามความเหมาะสมกับข้อมูล\nเนื้อหาจะต้องมาจากข้อมูลเท่านั้น\n\nโครงสร้างการเขียน:\n1. หัวข้อ (Headlines)\n\nใช้คำถามดึงดูดใจ: \"เชื่อหรือไม่?\", \"จริงหรือไม่?\", \"ใครจะไปคิดว่า\"\nเน้นข้อมูลที่น่าประหลาดใจหรือน่าสนใจ\nใช้เครื่องหมายตกใจ ! หรือ ?!\nรูปแบบ: [คำถาม/คำอุทาน] [ข้อมูลหลัก] [รายละเอียดน่าสนใจ]!\n\n2. เนื้อหาหลัก\nย่อหน้าที่ 1: Hook และ Context\n\nเริ่มด้วยคำอุทาน: \"ใครจะไปคิด\", \"พี่วาฬเพิ่งรู้\", \"พี่วาฬถึงกับร้องโหห!\" , \"รู้มั้ยว่า!\"\nใช้ emoji ที่เกี่ยวข้องกับเนื้อหา\nสร้างความประหลาดใจหรือดึงดูดความสนใจ\nปิดท้ายด้วยจุด (.)\n\nย่อหน้าที่ 2-3: รายละเอียดและข้อมูล\n\nเริ่มด้วย \"โดย [ชื่อบริษัท/โครงการ]\" หรือระบุตัวเลข/สถิติ\nใช้ข้อมูลเฉพาะ: ชื่อบริษัท, โครงการ, สถานที่, ตัวเลข\nใช้ emoji ที่เหมาะสม 🌍 🔋 ⚡ ✨ 🌿\nอธิบายรายละเอียดแบบเข้าใจง่าย\nใช้การเปรียบเทียบหรือตัวอย่างชีวิตจริง\nปิดท้ายด้วยจุด (.)\n\nย่อหน้าที่ 4: ความคิดเห็นและการเชื่อมโยง\n\nเริ่มด้วย \"พี่วาฬว่า\", \"พี่วาฬมองว่า\"\nแสดงความคิดเห็นส่วนตัวเชิงบวก\nเชื่อมโยงกับประเทศไทยหรือสถานการณ์ปัจจุบัน\nใช้ emoji หัวใจ 💙 💚 หรือ 🐳 ✨\nสร้างวิสัยทัศน์หรือความหวังในอนาคต\nอาจมีคำถามเชิงโต้ตอบกับผู้อ่าน\n\n3. การปิดท้าย\n\nแหล่งข้อมูล: \"ที่มา : [URL]\"\nช่องทางติดตาม (ใช้รูปแบบเดิม)\nแฮชแท็ก: เริ่มด้วย #พลังวาฬบางอย่าง + แฮชแท็กที่เกี่ยวข้อง\n\nสไตล์การใช้ภาษา\nโทนเสียง\n\nเป็นกันเอง สนิทสนม แบบพี่กับน้อง\nใช้คำอุทาน: \"ว้าว\", \"เจ๋ง\", \"จัง\", \"เนอะ\", \"ล่ะะ\"\nใช้คำปิดท้าย: \"นั่นเอง\", \"นะคร้าบ\", \"เลย\", \"ด้วย\"\nใช้คำย่อสมัยใหม่: \"แบตฯ\", \"บริษัทเทคฯ\"\n\nการใช้ Emoji\n\nใช้ emoji ตลอดทั้งเนื้อหาอย่างเหมาะสม\nemoji ประกอบหัวข้อและเนื้อหาหลัก\nใช้ 🐳 เป็นสัญลักษณ์ของพี่วาฬ\nใช้ emoji ตอบสนอง 🙋‍♀️🙋‍♂️ เมื่อต้องการปฏิสัมพันธ์\n\nการใช้ Bullet Points แบบหลากหลาย\nสำหรับเนื้อหาด้านพลังงาน:\n\n⚡ สำหรับเรื่องไฟฟ้า/พลังงาน\n🔋 สำหรับเรื่องแบตเตอรี่\n⛽ สำหรับเรื่องน้ำมัน/เชื้อเพลิง\n🌞 สำหรับพลังงานแสงอาทิตย์\n💨 สำหรับพลังงาน���ม\n\nสำหรับเนื้อหาด้านเทคโนโลยี:\n\n🚀 สำหรับนวัตกรรมใหม่\n💡 สำหรับไอเดีย/ความคิด\n🔧 สำหรับเทคโนโลยี/การพัฒนา\n📱 สำหรับแอป/ดิจิทัล\n🌐 สำหรับเรื่องโลกออนไลน์\n\nสำหรับเนื้อหาด้านสิ่งแวดล้อม:\n\n🌿 สำหรับความยั่งยืน\n🌍 สำหรับผลกระทบต่อโลก\n♻️ สำหรับรีไซเคิล/หมุนเวียน\n🌱 สำหรับการเติบโต/พัฒนา\n\nสำหรับข้อมูลทั่วไป:\n\n📍 สำหรับสถานที่/ตำแหน่ง\n💰 สำหรับเรื่อง��งิน/ต้นทุน\n⏰ สำหรับเวลา/ระยะเวลา\n🎯 สำหรับเป้าหมาย/ผลลัพธ์\n📊 สำหรับข้อมูล/สถิติ\n🏭 สำหรับโรงงาน/อุตสาหกรรม\n🚗 สำหรับยานพาหนะ\n🏠 สำหรับบ้าน/ที่อยู่อาศัย\n\nโครงสร้างประโยค:\n\nใช้คำถามเพื่อเริ่มต้นและดึงดุดความสนใจ\nแบ่งย่อหน้าด้วยจุด (.) เป็นตัวคั่น\nใช้ตัวเลขและข้อมูลเฉพาะเพื่อเสริมความน่าเชื่อถือ\nใช้ bullet points หลากหลายตามบริบทเนื้อหา\n\nข้อสำคัญที่ต้องปฎิบัต:\nใช้เนื้อหาจากข้อมูลที่ได้รับจริงเท่านั้นห้ามแต่งเติม\nวางโครงสร้างของเนื้อหาให้น่าสนใจและเหมาะสมกับข้อมูล ไม่มีรูปแบบตายตัว\nตรวจสอบการเขียนให้ถูกต้อง ใช้คำเชื่อมที่ลื่นไหล\n\n\nตัวอย่าง:\n🚘 ใครว่ารถยนต์ไฟฟ้าต้องรอชาร์จนาน? ตอนนี้ UNEX EV จากฮ่องกงเปิดตัวระบบ “Battery-as-a-Service” ในไทยอย่างเป็นทางการ!\n📍 และเลือกภูเก็ตเป็นพื้นที่แรกที่พร้อมสถานีเปลี่ยนแบตสุดล้ำ!\n.\n✨ จุดเด่นของระบบนี้คือ\n✅ เปลี่ยนแบต EV เสร็จภายใน 3 นาที\n✅ ไม่ต้องซื้อแบต! จ่ายแค่ค่าบริการ ใช้แบบเช่าแทน\n✅ ใช้ร่วมกับสถานีของ SUSCO และพันธมิตรขนส่งอย่าง Flash Express\n.\nโดย UNEX เขาตั้งเป้าไว้ที่ 1,000 สถานีทั่วไทยภายใน 3 ปี และยังมีความเชื่อมั่นว่าการเปลี่ยนแบตแทนชาร์จคือทางลัดให้คนไทยใช้ EV ได้ง่ายขึ้นอีกด้วย\n.\n💡 พี่วาฬว่านี่คือหนึ่งในนวัตกรรมที่อาจเปลี่ยนทั้งพฤติกรรมการใช้รถและอนาคตของพลังงานสะอาดในไทยได้เลย!\nแล้วมีเพื่อน ๆ คนไหนอยากเห็นแบบนี้ที่กรุงเทพฯ บ้าง ยกมือขึ้นนน 🙋‍♀️🙋‍♂️\n.\nที่มา : https://www.offo.or.th/th/node/542\n.\n📌 ติดตามพี่วาฬและเพื่อนๆ ที่ช่องทางอื่นได้ที่\nX (Twitter) : twitter.com/WhaleEnergy\nIG : www.instagram.com/whaleenergystation\nWebsite : www.whaleenergystation.com\nTikTok : https://www.tiktok.com/@whaleenergystation\n.\n#พลังวาฬบางอย่าง #UNEXEV #BatterySwap #EV #รถยนต์ไฟฟ้า #พลังงานสะอาด",
+              "role": "system"
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 10000,
+          "temperature": 0.3
+        }
+      },
+      "id": "41fa2089-4400-4da4-9f46-05f6230b6d94",
+      "name": "OpenAI: Write Content",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        7504,
+        3728
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "kcCa7K4jaXdaE1xe",
+          "name": "OpenAi_Ponlapoj"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=คุณคือ Visual Director ผู้เชี่ยวชาญของเพจ \"พลังวาฬบางอย่าง\"\n\nภารกิจ:\nวิเคราะห์เนื้อหา และสร้างคำสั่งสร้างภาพสำหรับ Social Media ที่สื่อสารได้อย่างชัดเจน และชวนให้คนรู้สึกสนใจน่าค้นหา โดยคุณจะได้รับเนื้อหาและเขียนเป็นคำสั่งสร้างภาพสำหรับ AI Model สร้างภาพ\n\nกฎเหล็กที่ห้ามละเมิดและต้องใส่ไปในคำสั่ง (NON-NEGOTIABLE RULES):\n\n* ระคำสั่งห้ามวาด Text/ตัวอักษร/Headline ในภาพทุกรูปแบบ\n* ระบุให้สร้าง Mascot \"พี่วาฬ\" โดยอาศัยภาพต้นแบบชื่อไฟล์ Mascot และต้องมีโครงสร้างตรงตามต้นแบบ:\n   ✓ มีเพียง: หาง 1 อัน + ครีป 2 ข้าง\n   ✗ ห้ามมี: แขน, ขา, มือ, เท้า หรืออวัยวะเพิ่มเติมใดๆ\n   ✓ ครีปสามารถใช้แตะ/โอบวัตถุได้ (ระบุให้ชัดเจนว่าสิ่งของต้องอยู่บนครีปเดิมหากสร้างใหม่)\n* ภาพต้องสื่อสารได้ด้วยตัวเองโดยไม่ต้องมี Text ในภาพ\n\nหลักการสร้างภาพที่สื่อสารชัดเจน:\n\n* HERO ELEMENT (องค์ประกอบหลัก):\n  * กำหนด วัตถุ/สัญลักษณ์ที่สื่อแก่นเรื่องได้ทันที\n  * ขนาดใหญ่ครอง 50-65% ของพื้นที่ภาพ\n  * วางที่ตำแหน่ง **กลาง-ล่าง** (40-70% จากบนลงล่าง)\n  * ใช้สีเด่นที่ตัดกับพื้นหลัง\n\n* COMPOSITION FOR TEXT OVERLAY:\n  * เว้นพื้นที่ว่างด้านบน 25-30% สำหรับ Text Headline ภายหลัง\n  * บริเวณบนใช้สีพื้นเรียบ หรือ soft gradient ไม่มีวัตถุหรือรายละเอียดบดบัง\n  * Hero Element และ mascot อยู่ส่วนกลาง-ล่าง ไม่ลอยมาบนเกินไป\n\n* VISUAL METAPHOR (สัญลักษณ์ที่เข้าใจง่าย):\n  * ใช้สัญลักษณ์ที่เหมาะสมกับเนื้อหา\n  * เนื้อหาหลากหลาย: พลังงาน, สิ่งแวดล้อม, เทคโนโลยี, ไลฟ์สไตล์\n  * เลือก metaphor ที่ชัดเจนที่สุดสำหรับหัวข้อนั้นๆ\n\n* VISUAL CONTRAST (ความตัดกัน):\n  * Hero: สีสดใส มีแสง/เงาชัดเจน\n  * Background: สีอ่อน พาสเทล หรือไล่โทน\n  * ใช้ความต่างของสีอย่างน้อย 40% value\n\nโครงสร้างคำสั่งที่ต้องสร้าง:\n\n* STYLE DIRECTION:\n  * แนวทางสไตล์ภาพที่เหมาะสมกับเนื้อหา (modern, playful, serious, tech, nature, lifestyle)\n  * ระบุ mood & tone ที่ต้องการ\n\n* COMPOSITION:\n  * ด้านบน 25-30%: เว้นว่าง พื้นสีเรียบหรือ gradient สำหรับ text overlay\n  * กลาง-ล่าง 50-65%: Hero Element \n  * ล่างสุด 10-20%: Supporting elements + Mascot\n\n* HERO ELEMENT:\n  * อธิบายวัตถุหลัก: ชนิด, ขนาด, สี, ตำแหน่ง (กลาง-ล่าง), รายละเอียดสำคัญ\n  * ต้องโดดเด่นสวยงามมีรายละเอียดดึงดูดตา น่าค้นหา และสื่อสารแก่นเรื่องได้ชัดเจน\n\n* VISUAL METAPHOR:\n  * อธิบายว่าภาพนี้สื่ออะไร ทำไมผู้ดูจะเข้าใจแล้วรู้สึกอยากอ่านเนื้อหาต่อ\n  * เชื่อมโยงกับเนื้อหาอย่างไร\n\n* SUPPORTING ELEMENTS:\n  * อธิบายฉากหลัง/ตัวประกอบที่เกี่ยวข้อง\n  * องค์ประกอบสนับสนุน Hero และไม่ลอยมาบนเกินไป\n\n* COLOR STRATEGY:\n  * ระบุสี Palette หลักและการใช้สีตัดกัน\n  * พื้นหลังด้านบน: สีโล่งสำหรับ text\n\n* MASCOT INTEGRATION:\n  * วาง mascot ในตำแหน่งที่เหมาะสม (มุมล่าง หรือข้างๆ Hero)\n  * คอสตูม/ธีมที่เข้ากับเนื้อหา\n  * โครงสร้างร่างกาย: หาง 1 + ครีป 2 เท่านั้น\n  * ครีปสามารถแตะ/โอบวัตถุได้ (ระบุให้ชัดเจนว่าสิ่งของต้องอยู่บนครีปเดิมหากสร้างใหม่)\n\nหลักสำคัญ:\n\n✓ ยืดหยุ่นตามเนื้อหา: พลังงาน/สิ่งแวดล้อม/เทคโนโลยี/ไลฟ์สไตล์\n✓ สไตล์หลากหลาย: flat, semi-realistic, minimalist, playful ตามความเหมาะสม\n✓ เว้นพื้นที่บนเสมอ: สำหรับ text overlay\n✓ Hero วางกลาง-ล่าง: ไม่ลอยมากลางพอดี\n\nผลลัพธ์: ส่งออกเฉพาะคำสั่งสร้างภาพเป็นภาษาไทย ไม่ต้องมีคำนำหรืออธิบายเพิ่มเติม",
+              "role": "system"
+            },
+            {
+              "content": "={{ $json.rawContent }}",
+              "role": "system"
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 2000,
+          "temperature": 0.5
+        }
+      },
+      "id": "22173546-b5d8-4cce-bb3b-a9d94417e4c5",
+      "name": "OpenAI: Generate Image Prompt",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        7504,
+        3536
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "kcCa7K4jaXdaE1xe",
+          "name": "OpenAi_Ponlapoj"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const contentResp = $('OpenAI: Write Content').first();\nconst promptResp = $('OpenAI: Generate Image Prompt').first();\n\nlet contentText = '';\nlet imagePrompt = '';\n\nif (contentResp?.json?.output) {\n  contentText = contentResp.json.output;\n} else if (contentResp?.json?.text) {\n  contentText = contentResp.json.text;\n} else if (contentResp?.json?.content) {\n  contentText = contentResp.json.content;\n} else if (contentResp?.json?.message?.content) {\n  contentText = contentResp.json.message.content;\n} else if (typeof contentResp?.json === 'string') {\n  contentText = contentResp.json;\n}\n\nif (promptResp?.json?.output) {\n  imagePrompt = promptResp.json.output;\n} else if (promptResp?.json?.text) {\n  imagePrompt = promptResp.json.text;\n} else if (promptResp?.json?.content) {\n  imagePrompt = promptResp.json.content;\n} else if (promptResp?.json?.message?.content) {\n  imagePrompt = promptResp.json.message.content;\n} else if (typeof promptResp?.json === 'string') {\n  imagePrompt = promptResp.json;\n}\n\nconst payloadData = $('Prepare Payload').first().json;\n\nreturn $input.all().map((item, index) => ({\n  json: {\n    ...payloadData,\n    contentText: contentText.trim(),\n    imagePrompt: imagePrompt.trim(),\n    hasContent: contentText.trim() ? true : false\n  },\n  pairedItem: item.pairedItem || { item: index }\n}));"
+      },
+      "id": "478731c0-2541-4638-8fea-f0d2dd3e8cca",
+      "name": "Merge AI Outputs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8080,
+        3632
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "bff63c54-8737-4b71-b855-6f703934ce74",
+              "leftValue": "={{ $json.hasContent }}",
+              "rightValue": "=true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2bd4a887-c522-4add-b31b-48c1170258e4",
+      "name": "Content Generated?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.1,
+      "position": [
+        8304,
+        3632
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "error-msg",
+              "name": "errorMessage",
+              "value": "Content generation failed",
+              "type": "string"
+            },
+            {
+              "id": "row-num",
+              "name": "rowNumber",
+              "value": "={{ $items('Prepare Payload')[0].json.rowNumber }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "39991417-3f61-4527-a705-c3e1ea700825",
+      "name": "Error: Content",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        8112,
+        3872
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "error-msg-2",
+              "name": "errorMessage",
+              "value": "Image generation failed",
+              "type": "string"
+            },
+            {
+              "id": "row-num-2",
+              "name": "rowNumber",
+              "value": "={{ $items('Prepare Payload')[0].json.rowNumber }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "01d9fa5f-f9c2-43c4-99a6-7f7b5e94186b",
+      "name": "Error: Image",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        7968,
+        4096
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "38322994-8a26-42d9-8f55-043d47611bf3",
+      "name": "Merge Errors",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        8096,
+        4096
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1tGmwTGrI0uQW8ggRmvV_9iov8ahdjAVC2UeSuW5Dzu4",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Content",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "=Error",
+            "Doc URL": "=",
+            "Error Message": "={{ $json.errorMessage }}"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Doc URL",
+              "displayName": "Doc URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Error Message",
+              "displayName": "Error Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a7f328e3-facc-4319-8e7a-b6973f84fbfa",
+      "name": "Update Row Error",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        8240,
+        4080
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ZqMMGEWyQfQjPSu0",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "edited",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1jWc4EfFuQLQllJTrGasdi4TZ_-UulKge",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "9d3e67e3-d831-40a9-bd09-d16c382691c1",
+      "name": "Upload to Drive1",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        9424,
+        3680
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "JLWVCTxQmADbqqHV",
+          "name": "Google Drive account Ponlapoj"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "share",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "permissionsUi": {
+          "permissionsValues": {
+            "role": "writer",
+            "type": "anyone"
+          }
+        },
+        "options": {}
+      },
+      "id": "ed15a050-4533-4a85-a1ba-d1ace61be517",
+      "name": "Share Image1",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        9648,
+        3680
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "JLWVCTxQmADbqqHV",
+          "name": "Google Drive account Ponlapoj"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "folderId": "1EVDi7QiLYzaga_-hBMS9p3dbcaxJiUhr",
+        "title": "={{ 'Auto Content - ' + $now.format('yyyy-MM-dd HH:mm:ss') }}"
+      },
+      "id": "c7a94b66-ec71-46e2-9ff3-cc3a86ff5135",
+      "name": "Create Google Doc1",
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        9872,
+        3680
+      ],
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "6tR96uBFMgaRkpW3",
+          "name": "Google Docs account ponlapoj"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentURL": "={{ $json.id }}",
+        "actionsUi": {
+          "actionFields": [
+            {
+              "action": "insert",
+              "text": "={{ $items('Merge AI Outputs')[0].json.contentText }}"
+            }
+          ]
+        }
+      },
+      "id": "5d104d78-0d27-4019-a584-71d8ecdbd402",
+      "name": "Insert Text Only1",
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        10096,
+        3680
+      ],
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "6tR96uBFMgaRkpW3",
+          "name": "Google Docs account ponlapoj"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://docs.googleapis.com/v1/documents/{{ $items('Create Google Doc1')[0].json.id }}:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDocsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ \n  {\n    \"requests\": [{\n      \"insertInlineImage\": {\n        \"uri\": \"https://drive.google.com/uc?export=download&id=\" + $items('Upload to Drive1')[0].json.id,\n        \"location\": {\n          \"index\": 1\n        }\n      }\n    }]\n  }\n}}",
+        "options": {}
+      },
+      "id": "9d2ffeb6-7de0-4ad4-991e-8b40aaa89fd9",
+      "name": "Insert Image via API1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        10320,
+        3680
+      ],
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "6tR96uBFMgaRkpW3",
+          "name": "Google Docs account ponlapoj"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1tGmwTGrI0uQW8ggRmvV_9iov8ahdjAVC2UeSuW5Dzu4",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Content",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "=Success",
+            "Doc URL": "={{ \"https://docs.google.com/document/d/\" + $node[\"Create Google Doc1\"].json[\"id\"] + \"/edit\" }}",
+            "row_number": "={{ $('Merge AI Outputs').first().json.rowNumber }}"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Doc URL",
+              "displayName": "Doc URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "29666302-a06e-4215-b024-5e6b71729062",
+      "name": "Update Row Success1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        10544,
+        3680
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ZqMMGEWyQfQjPSu0",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "edit",
+        "prompt": "=หน้าที่ : สร้างภาพตามคำสั่งอย่างสร้างสรรค์ และรักษากฎที่สั่งอย่างเข้มงวด \nข้อมูลที่ได้รับ :\n1.ภาพ Mascot ต้นแบบ ที่ต้องยึดไว้ห้ามเปลี่ยน และ ตัวอย่างสไตล์ของภาพ\n2.คำสั่งสร้างภาพ\n# คำสั่งสร้างภาพ :\n{{ $json.imagePrompt }}\n**กฎสำคัญ** : ในภาพไม่มี Text Headline ใดใดอย่างเด็ดขาด **ห้ามวาดขา mascot ยืนได้เหมือนคน** ใบหน้าเหมือนต้นแบบเท่านั้น SIZE ภาพขนาด 16:9 และ มุมซ้ายล่างของภาพระบุชื่อเว็บตามตัวอย่าง และมุมขวาล่างใส่ logo เพจตามตัวอย่างห้ามแต่งเติมเพิ่ม",
+        "images": {
+          "values": [
+            {
+              "binaryPropertyName": "Mascot1"
+            },
+            {
+              "binaryPropertyName": "Mascot_sad"
+            },
+            {
+              "binaryPropertyName": "Mascot_wow"
+            },
+            {
+              "binaryPropertyName": "example1"
+            },
+            {
+              "binaryPropertyName": "example2"
+            },
+            {
+              "binaryPropertyName": "example3"
+            },
+            {
+              "binaryPropertyName": "example4"
+            },
+            {
+              "binaryPropertyName": "example5"
+            },
+            {
+              "binaryPropertyName": "example6"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "87cf3084-d422-4577-a2f0-941ba918b6f5",
+      "name": "Gemini: Generate Image with Mascot",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        9200,
+        3680
+      ],
+      "retryOnFail": false,
+      "alwaysOutputData": false,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "lwt47JIfnt5MoxnD",
+          "name": "Google Gemini Api_Ponlapoj"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 9,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        8752,
+        3568
+      ],
+      "id": "955fb006-71e7-4dad-be29-b3c3154dbc06",
+      "name": "Merge",
+      "executeOnce": true,
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1z0WWet93Pq3kxyo8gCiyBkQj_nQ8zssG",
+          "mode": "list",
+          "cachedResultName": "example2.jpg",
+          "cachedResultUrl": "https://drive.google.com/file/d/1z0WWet93Pq3kxyo8gCiyBkQj_nQ8zssG/view?usp=drivesdk"
+        },
+        "options": {
+          "binaryPropertyName": "example2"
+        }
+      },
+      "id": "9df5fec8-2b95-4300-9bab-b101149bb845",
+      "name": "Download Example content2",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        8528,
+        3680
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "JLWVCTxQmADbqqHV",
+          "name": "Google Drive account Ponlapoj"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1cdROcQlWBdgjwyJh5u7pr9T522IT7rlO",
+          "mode": "list",
+          "cachedResultName": "example5.png",
+          "cachedResultUrl": "https://drive.google.com/file/d/1cdROcQlWBdgjwyJh5u7pr9T522IT7rlO/view?usp=drivesdk"
+        },
+        "options": {
+          "binaryPropertyName": "example3"
+        }
+      },
+      "id": "ea886d25-3ea9-4cbc-bc88-9c167e8e3b09",
+      "name": "Download Example content3",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        8528,
+        3872
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "JLWVCTxQmADbqqHV",
+          "name": "Google Drive account Ponlapoj"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1zIQiWeIgGHk-GFyvIonARQVeEc9qy1T9",
+          "mode": "list",
+          "cachedResultName": "example1.jpg",
+          "cachedResultUrl": "https://drive.google.com/file/d/1zIQiWeIgGHk-GFyvIonARQVeEc9qy1T9/view?usp=drivesdk"
+        },
+        "options": {
+          "binaryPropertyName": "example1"
+        }
+      },
+      "id": "8217c683-e559-436e-a6bb-596899f4d8c7",
+      "name": "Download Example content1",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        8528,
+        3488
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "JLWVCTxQmADbqqHV",
+          "name": "Google Drive account Ponlapoj"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1auRvEdH7eFyli8mYzmSss7F8YhBmphYy",
+          "mode": "list",
+          "cachedResultName": "example6.png",
+          "cachedResultUrl": "https://drive.google.com/file/d/1auRvEdH7eFyli8mYzmSss7F8YhBmphYy/view?usp=drivesdk"
+        },
+        "options": {
+          "binaryPropertyName": "example4"
+        }
+      },
+      "id": "eaf62c0b-6128-4f4a-b6e7-e07de1d818f8",
+      "name": "Download Example content4",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        8528,
+        4080
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "JLWVCTxQmADbqqHV",
+          "name": "Google Drive account Ponlapoj"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "/content-trigger",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        5936,
+        3376
+      ],
+      "id": "c4415c1f-a46d-4455-8c46-31b9aee55bfa",
+      "name": "Webhook",
+      "webhookId": "daefdf71-7936-4246-b32e-14cf30382b2b"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "acbcb925-485b-473c-aac7-f8af11c77c11",
+              "name": "rowNumber",
+              "value": "={{ $json.body.rowNumber }}",
+              "type": "string"
+            },
+            {
+              "id": "555e534e-042f-44fb-bd31-082334a7eb88",
+              "name": "rawContent",
+              "value": "={{ $json.body.rawContent }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        6160,
+        3376
+      ],
+      "id": "ed9771e1-a992-439e-b3bb-4a3fe02b7439",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1RHEuK4yhqm0baUtXUtuqzier1TRPxgii",
+          "mode": "list",
+          "cachedResultName": "Character_mascot1.png",
+          "cachedResultUrl": "https://drive.google.com/file/d/1RHEuK4yhqm0baUtXUtuqzier1TRPxgii/view?usp=drivesdk"
+        },
+        "options": {
+          "binaryPropertyName": "Mascot1"
+        }
+      },
+      "id": "9794968f-476a-4593-af7d-1b315a310dd9",
+      "name": "Download Mascot1",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        8528,
+        2912
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "JLWVCTxQmADbqqHV",
+          "name": "Google Drive account Ponlapoj"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1-SZrvhE6herzf0vdG8z7WbACnVPNObnw",
+          "mode": "list",
+          "cachedResultName": "Character_mascot_sad.png",
+          "cachedResultUrl": "https://drive.google.com/file/d/1-SZrvhE6herzf0vdG8z7WbACnVPNObnw/view?usp=drivesdk"
+        },
+        "options": {
+          "binaryPropertyName": "Mascot_sad"
+        }
+      },
+      "id": "f7bcc031-dc72-4852-a715-58495ecf1b40",
+      "name": "Download Mascot_Sad",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        8528,
+        3104
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "JLWVCTxQmADbqqHV",
+          "name": "Google Drive account Ponlapoj"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1ePl3woHEKX6AM2i0WGjEGM2pWQrrsuC8",
+          "mode": "list",
+          "cachedResultName": "Character_mascot_wow.png",
+          "cachedResultUrl": "https://drive.google.com/file/d/1ePl3woHEKX6AM2i0WGjEGM2pWQrrsuC8/view?usp=drivesdk"
+        },
+        "options": {
+          "binaryPropertyName": "Mascot_wow"
+        }
+      },
+      "id": "8df8a6fe-baed-4100-b803-571092d2fa5f",
+      "name": "Download Mascot_wow",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        8528,
+        3296
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "JLWVCTxQmADbqqHV",
+          "name": "Google Drive account Ponlapoj"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## AI Write content\n",
+        "height": 848,
+        "width": 384,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        7424,
+        3280
+      ],
+      "typeVersion": 1,
+      "id": "adfbb21f-98c2-49a7-9db7-620487b9865c",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1y6PgzD_y_E9nrj_xK8Mx05HEI6I5Wqjh",
+          "mode": "list",
+          "cachedResultName": "example7.png",
+          "cachedResultUrl": "https://drive.google.com/file/d/1y6PgzD_y_E9nrj_xK8Mx05HEI6I5Wqjh/view?usp=drivesdk"
+        },
+        "options": {
+          "binaryPropertyName": "example5"
+        }
+      },
+      "id": "71f95317-0739-4a68-817f-8a445644178b",
+      "name": "Download Example content5",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        8528,
+        4272
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "JLWVCTxQmADbqqHV",
+          "name": "Google Drive account Ponlapoj"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1roqswTUSWF1qAUox-DI6GVnK10SKMWdA",
+          "mode": "list",
+          "cachedResultName": "example8.png",
+          "cachedResultUrl": "https://drive.google.com/file/d/1roqswTUSWF1qAUox-DI6GVnK10SKMWdA/view?usp=drivesdk"
+        },
+        "options": {
+          "binaryPropertyName": "example6"
+        }
+      },
+      "id": "bce32b13-9536-4d87-897e-b40ae22078e3",
+      "name": "Download Example content6",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        8528,
+        4464
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "JLWVCTxQmADbqqHV",
+          "name": "Google Drive account Ponlapoj"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ดึงข้อมูลทั้งหมดจาก Merge\nconst items = $input.all();\n\n// รวม binary จากทุก items\nconst mergedBinary = {};\n\nfor (const item of items) {\n  if (item.binary) {\n    Object.assign(mergedBinary, item.binary);\n  }\n}\n\n// ดึง imagePrompt จาก item แรก\nconst imagePrompt = $input.first().json.imagePrompt;\n\n// ส่งออก 1 item ที่มีแค่ binary + imagePrompt\nreturn [{\n  json: {\n    imagePrompt: imagePrompt\n  },\n  binary: mergedBinary\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8976,
+        3680
+      ],
+      "id": "28cb9634-5fe0-4794-9990-e68ca4b41fc7",
+      "name": "Merge data"
+    },
+    {
+      "parameters": {},
+      "id": "3fa4d6aa-b11b-4266-bcb5-b85e69a4f5aa",
+      "name": "Wait for Both AI",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        7856,
+        3632
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Global Mascot Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Global Mascot Config": {
+      "main": [
+        [
+          {
+            "node": "Read Content Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Content Rows": {
+      "main": [
+        [
+          {
+            "node": "Filter Pending Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Pending Items": {
+      "main": [
+        [
+          {
+            "node": "Has Work?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Work?": {
+      "main": [
+        [
+          {
+            "node": "Mark as Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Payload": {
+      "main": [
+        [
+          {
+            "node": "OpenAI: Write Content",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "OpenAI: Generate Image Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge AI Outputs": {
+      "main": [
+        [
+          {
+            "node": "Content Generated?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Content Generated?": {
+      "main": [
+        [
+          {
+            "node": "Download Mascot1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Download Example content1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Download Example content3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Download Example content2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Download Example content4",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Download Mascot_Sad",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Download Mascot_wow",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Download Example content5",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Download Example content6",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error: Content": {
+      "main": [
+        [
+          {
+            "node": "Error: Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error: Image": {
+      "main": [
+        [
+          {
+            "node": "Merge Errors",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Errors": {
+      "main": [
+        [
+          {
+            "node": "Update Row Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload to Drive1": {
+      "main": [
+        [
+          {
+            "node": "Share Image1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Share Image1": {
+      "main": [
+        [
+          {
+            "node": "Create Google Doc1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Google Doc1": {
+      "main": [
+        [
+          {
+            "node": "Insert Text Only1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Text Only1": {
+      "main": [
+        [
+          {
+            "node": "Insert Image via API1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Image via API1": {
+      "main": [
+        [
+          {
+            "node": "Update Row Success1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark as Processing": {
+      "main": [
+        [
+          {
+            "node": "Prepare Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini: Generate Image with Mascot": {
+      "main": [
+        [
+          {
+            "node": "Upload to Drive1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Merge data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Example content2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Download Example content3": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 5
+          }
+        ]
+      ]
+    },
+    "Download Example content1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Download Example content4": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 6
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Mascot1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Mascot_Sad": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Download Mascot_wow": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Download Example content5": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 7
+          }
+        ]
+      ]
+    },
+    "Download Example content6": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 8
+          }
+        ]
+      ]
+    },
+    "Merge data": {
+      "main": [
+        [
+          {
+            "node": "Gemini: Generate Image with Mascot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI: Write Content": {
+      "main": [
+        [
+          {
+            "node": "Wait for Both AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI: Generate Image Prompt": {
+      "main": [
+        [
+          {
+            "node": "Wait for Both AI",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Wait for Both AI": {
+      "main": [
+        [
+          {
+            "node": "Merge AI Outputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b9fd38ae-7c07-4ba6-9d2e-53a2ebf8f8a5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "917d40ef29044d2ecd4b06bcd2dc97f8870c7bbd74c163ca5c57f9fe0d1b895e"
+  },
+  "id": "Fu9himX8K4GytVkW",
+  "tags": []
+}
